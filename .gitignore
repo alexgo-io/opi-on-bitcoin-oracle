@@ -1,0 +1,11 @@
+data
+configs/bitmap_api
+configs/bitmap_index
+configs/brc20_api
+configs/brc20_index
+configs/main_index
+configs/sns_api
+configs/sns_index
+.envrc.override
+deploy/node_modules
+.vscode/sftp.json

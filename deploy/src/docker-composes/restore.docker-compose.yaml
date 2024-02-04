@@ -1,0 +1,30 @@
+version: "3.7"
+services:
+  postgres-opi-server:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      - ${OPI_PG_DATA_PATH}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  restore:
+    image: ${OPI_IMAGE}
+    command: "bash -c \"cd /usr/local/OPI/modules/ && python restore.py\""
+    volumes:
+      - ${WORKSPACE_ROOT}/configs/bitmap_api/.env:/usr/local/OPI/modules/bitmap_api/.env
+      - ${WORKSPACE_ROOT}/configs/bitmap_index/.env:/usr/local/OPI/modules/bitmap_index/.env
+      - ${WORKSPACE_ROOT}/configs/brc20_api/.env:/usr/local/OPI/modules/brc20_api/.env
+      - ${WORKSPACE_ROOT}/configs/brc20_index/.env:/usr/local/OPI/modules/brc20_index/.env
+      - ${WORKSPACE_ROOT}/configs/main_index/.env:/usr/local/OPI/modules/main_index/.env
+      - ${WORKSPACE_ROOT}/configs/sns_api/.env:/usr/local/OPI/modules/sns_api/.env
+      - ${WORKSPACE_ROOT}/configs/sns_index/.env:/usr/local/OPI/modules/sns_index/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy

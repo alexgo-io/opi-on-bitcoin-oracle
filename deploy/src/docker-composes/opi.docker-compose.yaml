@@ -1,0 +1,87 @@
+version: "3.7"
+services:
+  postgres-opi-server:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      - ${OPI_PG_DATA_PATH}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "21432:5432"
+  bitcoind:
+    image: ${BITCOIND_IMAGE}
+    volumes:
+      - ${OPI_BITCOIND_PATH}:/usr/local/bitcoind
+    environment:
+      - BITCOIN_RPC_USER=${BITCOIN_RPC_USER}
+      - BITCOIN_RPC_PASSWD=${BITCOIN_RPC_PASSWD}
+    ports:
+      - "${BITCOIN_RPC_PORT}:${BITCOIN_RPC_PORT}"
+  meta-protocol-indexer:
+    image: ${OPI_IMAGE}
+    restart: always
+    command: 'bash -c "cd /usr/local/OPI/modules/main_index && node index.js"'
+    volumes:
+      - ./configs/main_index/.env:/usr/local/OPI/modules/main_index/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy
+  brc20-indexer:
+    image: ${OPI_IMAGE}
+    restart: always
+    command: 'bash -c "cd /usr/local/OPI/modules/brc20_index && python brc20_index.py"'
+    volumes:
+      - ./configs/brc20_index/.env:/usr/local/OPI/modules/brc20_index/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy
+  brc20-api:
+    image: ${OPI_IMAGE}
+    command: 'bash -c "cd /usr/local/OPI/modules/brc20_api && node api.js"'
+    volumes:
+      - ./configs/brc20_api/.env:/usr/local/OPI/modules/brc20_api/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy
+  bitmap-indexer:
+    image: ${OPI_IMAGE}
+    restart: always
+    command: 'bash -c "cd /usr/local/OPI/modules/bitmap_index && python bitmap_index.py"'
+    volumes:
+      - ./configs/bitmap_index/.env:/usr/local/OPI/modules/bitmap_index/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy
+  bitmap-api:
+    image: ${OPI_IMAGE} 
+    command: 'bash -c "cd /usr/local/OPI/modules/bitmap_api && node api.js"'
+    volumes:
+      - ./configs/bitmap_api/.env:/usr/local/OPI/modules/bitmap_api/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy
+  sns-indexer:
+    image: ${OPI_IMAGE}
+    restart: always
+    command: 'bash -c "cd /usr/local/OPI/modules/sns_index && python sns_index.py"'
+    volumes:
+      - ./configs/sns_index/.env:/usr/local/OPI/modules/sns_index/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy
+  sns-api:
+    image: ${OPI_IMAGE}
+    command: 'bash -c "cd /usr/local/OPI/modules/sns_api && node api.js"' 
+    volumes:
+      - ./configs/sns_api/.env:/usr/local/OPI/modules/sns_api/.env
+    depends_on:
+      postgres-opi-server:
+        condition: service_healthy
