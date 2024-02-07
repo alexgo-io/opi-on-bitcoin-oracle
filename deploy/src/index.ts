@@ -1,5 +1,5 @@
 import * as digitalocean from "@pulumi/digitalocean";
-import { getPrivateKey, getScript, root, sshKey } from './utils'
+import { getPrivateKey, getScript, root, sshKey, unroot } from './utils'
 import assert from "assert";
 import { local, remote, types } from "@pulumi/command";
 import fs from 'fs'
@@ -9,7 +9,7 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import * as pulumi from "@pulumi/pulumi";
 import { Output } from '@pulumi/pulumi';
-
+import { readdirSync, readFileSync, statSync } from 'fs';
 
 function create(params: { name: string, region: string, size: string, image: string }) {
     const { region, size, name, image } = params
@@ -32,9 +32,13 @@ function create(params: { name: string, region: string, size: string, image: str
         // monitoring: true,
         sshKeys: [sshKey.id],
     });
-    const copyFiles = (loc: string, remotePath: pulumi.Output<string>) => {
-        return new local.Command(`${name}:copyFiles: ${loc}`, {
-            create: pulumi.interpolate`rsync -avP ${root(loc)} ${connection.user}@${droplet.ipv4Address}:${remotePath}`,
+    const copyDir = (loc: string, remotePath: pulumi.Output<string>) => {
+        if (!fs.existsSync(loc)) {
+            throw new Error(`not found: ${loc}`)
+        }
+        const hash = generateDirectoryHash(loc).slice(0, 5)
+        return new local.Command(`${name}:copyFiles:${hash} ${unroot(loc)}`, {
+            create: pulumi.interpolate`rsync -avP ${loc} ${connection.user}@${droplet.ipv4Address}:${remotePath}`,
         })
     }
 
@@ -59,9 +63,8 @@ function create(params: { name: string, region: string, size: string, image: str
         create: getScript('print_mnt_name.sh'),
     }, { dependsOn: [droplet, volumeAttachment, volume], customTimeouts: { create: '5m' } });
 
-    const cpRestoreDockerCompose = new remote.CopyFile(`${name}:restore`, {
-        connection,
-        localPath: volumePathPrint.stdout.apply(volumeName => transformFile(name, './src/docker-composes/restore.docker-compose.yaml', [
+    const cpRestoreDockerCompose = volumePathPrint.stdout.apply(volumeName => {
+        const localPath = transformFile(name, './src/docker-composes/restore.docker-compose.yaml', [
             ['${OPI_PG_DATA_PATH}', `${volumeName}/pg_data`],
             ['${OPI_IMAGE}', process.env['OPI_IMAGE']!],
             // DB_USER
@@ -72,9 +75,17 @@ function create(params: { name: string, region: string, size: string, image: str
             ['${DB_DATABASE}', process.env['DB_DATABASE']!],
             // WORKSPACE_ROOT
             ['${WORKSPACE_ROOT}', volumeName],
-        ])),
-        remotePath: volumePathPrint.stdout.apply(name => (`${name}/restore.docker-compose.yaml`)),
-    });
+        ])
+
+        const file = fs.readFileSync(localPath, 'utf-8')
+        const hash = createHash('md5').update(file).digest('hex').slice(0, 5)
+
+        return new remote.CopyFile(`${name}:restore:${hash}`, {
+            connection,
+            localPath,
+            remotePath: `${volumeName}/restore.docker-compose.yaml`,
+        });
+    })
 
     const execScriptOnRemote = (loc: string, options: { cwd?: pulumi.Output<string>, commandOpts?: any } = {}) => {
         // cwd is the CWD
@@ -94,11 +105,10 @@ function create(params: { name: string, region: string, size: string, image: str
                 create: createContent
             }, options.commandOpts);
         }
-
     }
 
 
-    const cpConfig = copyFiles('configs', pulumi.interpolate`${volumePathPrint.stdout}`)
+    const cpConfig = copyDir(root('configs'), pulumi.interpolate`${volumePathPrint.stdout}`)
 
     const restore = execScriptOnRemote('deploy/src/scripts/restore.sh', {
         cwd: pulumi.interpolate`/${volumePathPrint.stdout}`,
@@ -107,38 +117,41 @@ function create(params: { name: string, region: string, size: string, image: str
         }
     })
 
-    const cpDockerCompose = volumePathPrint.stdout.apply(volumeName => {
-        return new remote.CopyFile(`${name}:cp:opi.docker-compose -> ${volumeName}`, {
+    volumePathPrint.stdout.apply(volumeName => {
+        const localPath = transformFile(name, './src/docker-composes/opi.docker-compose.yaml', [
+            ['${OPI_PG_DATA_PATH}', `${volumeName}/pg_data`],
+            ['${OPI_BITCOIND_PATH}', `${volumeName}/bitcoind_data`],
+            ['${OPI_IMAGE}', process.env['OPI_IMAGE']!],
+            ['${BITCOIND_IMAGE}', process.env['BITCOIND_IMAGE']!],
+            // DB_USER
+            ['${DB_USER}', process.env['DB_USER']!],
+            // DB_PASSWORD
+            ['${DB_PASSWD}', process.env['DB_PASSWD']!],
+            // DB_DATABASE
+            ['${DB_DATABASE}', process.env['DB_DATABASE']!],
+            // WORKSPACE_ROOT
+            ['${WORKSPACE_ROOT}', volumeName],
+            // BITCOIN_RPC_USER
+            ['${BITCOIN_RPC_USER}', process.env['BITCOIN_RPC_USER']!],
+            // BITCOIN_RPC_PASSWD
+            ['${BITCOIN_RPC_PASSWD}', process.env['BITCOIN_RPC_PASSWD']!],
+            // BITCOIN_RPC_PORT
+            ['${BITCOIN_RPC_PORT}', process.env['BITCOIN_RPC_PORT']!],
+        ]);
+        const file = fs.readFileSync(localPath, 'utf-8')
+        const hash = createHash('md5').update(file).digest('hex').slice(0, 5)
+
+        const cpDockerCompose = new remote.CopyFile(`${name}:cp:opi.docker-compose:${hash} -> ${volumeName}`, {
             connection,
-            localPath: transformFile(name, './src/docker-composes/opi.docker-compose.yaml', [
-                ['${OPI_PG_DATA_PATH}', `${volumeName}/pg_data`],
-                ['${OPI_BITCOIND_PATH}', `${volumeName}/bitcoind_data`],
-                ['${OPI_IMAGE}', process.env['OPI_IMAGE']!],
-                ['${BITCOIND_IMAGE}', process.env['BITCOIND_IMAGE']!],
-                // DB_USER
-                ['${DB_USER}', process.env['DB_USER']!],
-                // DB_PASSWORD
-                ['${DB_PASSWD}', process.env['DB_PASSWD']!],
-                // DB_DATABASE
-                ['${DB_DATABASE}', process.env['DB_DATABASE']!],
-                // WORKSPACE_ROOT
-                ['${WORKSPACE_ROOT}', volumeName],
-                // BITCOIN_RPC_USER
-                ['${BITCOIN_RPC_USER}', process.env['BITCOIN_RPC_USER']!],
-                // BITCOIN_RPC_PASSWD
-                ['${BITCOIN_RPC_PASSWD}', process.env['BITCOIN_RPC_PASSWD']!],
-                // BITCOIN_RPC_PORT
-                ['${BITCOIN_RPC_PORT}', process.env['BITCOIN_RPC_PORT']!],
-            ]),
+            localPath,
             remotePath: `${volumeName}/opi.docker-compose.yaml`,
         }, { dependsOn: [restore] });
+
+        new remote.Command(`${name}:start-opi:${hash}`, {
+            connection,
+            create: pulumi.interpolate`cd ${volumePathPrint.stdout} && docker-compose -f opi.docker-compose.yaml pull && docker-compose -f opi.docker-compose.yaml up -d`,
+        }, { dependsOn: [cpDockerCompose] })
     })
-
-    new remote.Command(`${name}:start-opi..`, {
-        connection,
-        create: pulumi.interpolate`cd ${volumePathPrint.stdout} && docker-compose -f opi.docker-compose.yaml pull && docker-compose -f opi.docker-compose.yaml up -d`,
-    }, { dependsOn: [cpDockerCompose] })
-
 
 
     exports[`ip_${name}`] = droplet.ipv4Address;
@@ -198,7 +211,32 @@ const createTmpDirFromSeed = (seed: string): string => {
         throw new Error(`Failed to create temp directory: ${error}`);
     }
 };
+function hashFile(filePath: string): string {
+    const fileBuffer = readFileSync(filePath);
+    const hashSum = createHash('sha256');
+    hashSum.update(fileBuffer);
+    return hashSum.digest('hex');
+}
 
+function generateDirectoryHash(dirPath: string): string {
+    let hashString = '';
+
+    const files = readdirSync(dirPath);
+    for (const file of files) {
+        const filePath = join(dirPath, file);
+        const fileStat = statSync(filePath);
+
+        if (fileStat.isDirectory()) {
+            hashString += `${file}:${generateDirectoryHash(filePath)}`;
+        } else {
+            hashString += `${file}:${hashFile(filePath)}`;
+        }
+    }
+
+    const hashSum = createHash('sha256');
+    hashSum.update(hashString);
+    return hashSum.digest('hex');
+}
 
 // ===============
 // Create Droplet
@@ -206,25 +244,25 @@ const createTmpDirFromSeed = (seed: string): string => {
 
 const instances = [
 
-create({
-    name: "opi1sfo",
-    region: 'sfo3',
-    size: 's-8vcpu-16gb-amd',
-    image: '149367446'
-}),
+    create({
+        name: "opi1sfo",
+        region: 'sfo3',
+        size: 's-8vcpu-16gb-amd',
+        image: '149367446'
+    }),
 
-create({
-    name: "opi1lon",
-    region: 'lon1',
-    size: 's-8vcpu-16gb-amd',
-    image: '149439505'
-}),
+    create({
+        name: "opi1lon",
+        region: 'lon1',
+        size: 's-8vcpu-16gb-amd',
+        image: '149439505'
+    }),
 
-create({
-    name: "opi1sgp",
-    region: 'sgp1',
-    size: 's-8vcpu-16gb-amd',
-    image: '149439499'
-})];
+    create({
+        name: "opi1sgp",
+        region: 'sgp1',
+        size: 's-8vcpu-16gb-amd',
+        image: '149439499'
+    })];
 
 // takeSnapshot(instances[0])

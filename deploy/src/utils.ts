@@ -12,6 +12,14 @@ export function root(filePath: string) {
     throw new Error(`File not found: ${p}`);
 }
 
+root("deploy/src/scripts/restore.sh") //?
+
+// convert the absolute path from root(filePath: string) to relative path
+// example: unroot(root(a)) === a
+export function unroot(filePath: string) {
+    return filePath.replace(root("") + "/", "");
+}
+
 const id = process.env['DIGITAL_OCEAN_SSH_KEY_ID'];
 const name = process.env['DIGITAL_OCEAN_SSH_KEY_NAME'];
 
@@ -33,7 +41,7 @@ export const getPrivateKey = () => {
     const resolvedPrivateKeyPath = privateKeyPath.startsWith('~')
         ? path.join(os.homedir(), privateKeyPath.slice(1))
         : path.resolve(privateKeyPath);
-    
+
     const key = fs.readFileSync(resolvedPrivateKeyPath, 'utf-8');
 
     return key;

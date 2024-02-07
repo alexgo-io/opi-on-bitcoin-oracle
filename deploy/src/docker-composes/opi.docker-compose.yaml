@@ -18,6 +18,7 @@ services:
       - "21432:5432"
   bitcoind:
     image: ${BITCOIND_IMAGE}
+    restart: always
     volumes:
       - ${OPI_BITCOIND_PATH}:/usr/local/bitcoind
     environment:
