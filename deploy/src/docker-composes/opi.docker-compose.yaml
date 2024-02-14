@@ -29,9 +29,11 @@ services:
   meta-protocol-indexer:
     image: ${OPI_IMAGE}
     restart: always
-    command: 'bash -c "cd /usr/local/OPI/modules/main_index && node index.js"'
+    command: 'bash -c "cd /usr/local/OPI/modules/main_index && node --max-old-space-size=12288 index.js"'
     volumes:
       - ./configs/main_index/.env:/usr/local/OPI/modules/main_index/.env
+      - ${ORD_DATADIR}:/ord_data
+      - ${BITCOIN_CHAIN_FOLDER}:/bitcoind/datadir
     depends_on:
       postgres-opi-server:
         condition: service_healthy

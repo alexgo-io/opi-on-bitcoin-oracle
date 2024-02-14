@@ -9,8 +9,6 @@ ENV NODE_MAJOR=20 \
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
-        postgresql-client-common \
-        postgresql-client-15 \
 		build-essential \
 		ca-certificates \
 		curl \

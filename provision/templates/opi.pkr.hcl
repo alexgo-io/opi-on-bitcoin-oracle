@@ -40,7 +40,7 @@ build {
   sources = [
     "source.digitalocean.opi-sfo3",
     "source.digitalocean.opi-lon1",
-    "source.digitalocean.opi-",
+    "source.digitalocean.opi-sgp1",
   ]
 
   provisioner "shell" {

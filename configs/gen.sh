@@ -81,7 +81,7 @@ generate_env_bitmap_index() {
         echo "REPORT_TO_INDEXER=\"${REPORT_TO_INDEXER:-true}\""
         echo "REPORT_URL=\"${REPORT_URL:-https://api.opi.network/report_block}\""
         echo "REPORT_RETRIES=\"${REPORT_RETRIES:-10}\""
-        echo "REPORT_NAME=\"${REPORT_NAME:-opi_bitmap_index}\""
+        echo "REPORT_NAME=\"${REPORT_NAME_BITMAP:-alexgo_opi_bitmap_index}\""
     } >"bitmap_index/.env"
 }
 
@@ -169,7 +169,7 @@ generate_env_brc20_index() {
         echo "REPORT_TO_INDEXER=\"${REPORT_TO_INDEXER:-true}\""
         echo "REPORT_URL=\"${REPORT_URL:-https://api.opi.network/report_block}\""
         echo "REPORT_RETRIES=\"${REPORT_RETRIES:-10}\""
-        echo "REPORT_NAME=\"${REPORT_NAME:-opi_brc20_index}\""
+        echo "REPORT_NAME=\"${REPORT_NAME_BRC20:-alexgo_opi_brc20_index}\""
     } >"brc20_index/.env"
 }
 
@@ -307,7 +307,7 @@ generate_env_sns_index() {
         echo "REPORT_TO_INDEXER=\"${REPORT_TO_INDEXER:-true}\""
         echo "REPORT_URL=\"${REPORT_URL:-https://api.opi.network/report_block}\""
         echo "REPORT_RETRIES=\"${REPORT_RETRIES:-10}\""
-        echo "REPORT_NAME=\"${REPORT_NAME:-opi_sns_index}\""
+        echo "REPORT_NAME=\"${REPORT_NAME_SNS:-alex_opi_sns_index}\""
     } >"sns_index/.env"
 }
 
