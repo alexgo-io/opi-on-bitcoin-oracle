@@ -4,7 +4,8 @@ ENV NODE_MAJOR=20 \
   RUSTUP_HOME=/usr/local/rustup \
   CARGO_HOME=/usr/local/cargo \
   PATH=$PATH:/usr/local/cargo/bin:/usr/local/OPI/ord/target/release \
-  RUST_VERSION=1.75.0
+  RUST_VERSION=1.75.0 \
+  OPI_COMMIT_HASH=61bf0a747129e31341b0d99ceebefadd2640c4a7
 
 RUN set -eux; \
 	apt-get update; \
@@ -52,7 +53,9 @@ RUN set -eux; \
 
 RUN pip install --no-cache-dir python-dotenv psycopg2 psycopg2-binary boto3 tqdm json5 stdiomask requests;
 
-RUN git clone https://github.com/alexgo-io/OPI.git --branch feat/none-interactive /usr/local/OPI; \
+RUN git clone https://github.com/bestinslot-xyz/OPI.git /usr/local/OPI; \
+    cd /usr/local/OPI; \
+    git checkout $OPI_COMMIT_HASH; \
     cd /usr/local/OPI/ord; cargo build --release; \
 	cd /usr/local/OPI/modules/main_index; npm install; \
 	cd /usr/local/OPI/modules/brc20_api; npm install; \
