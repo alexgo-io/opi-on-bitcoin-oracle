@@ -62,7 +62,7 @@ The droplet can be accessed via SSH using the defined SSH key.
 # Resources
 
 - [Pulumi DigitalOcean Provider](https://www.pulumi.com/docs/reference/pkg/digitalocean/)
-- [OPI Documentation](https://docs.opi.network/)
+- [OPI Documentation](https://github.com/bestinslot-xyz/OPI)
 - [asdf](https://asdf-vm.com/)
 - [direnv](https://direnv.net/)
 - [Pulumi](https://www.pulumi.com/)
