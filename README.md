@@ -15,13 +15,24 @@ The project contains the following files:
 
 ## Getting Started
 
+### DigitalOcean account
+You need an account at DigitalOcean and need to be familiar with [doctl](https://docs.digitalocean.com/reference/doctl/).
+
 ### Setup asdf
 The project uses [asdf](https://asdf-vm.com/) to manage tool versions. To use it, install asdf and run `asdf install` in the project directory. This will install `packer`, `pulumi`, `pnpm`, and `nodejs` with version specified in `.tool-versions`
+
+```bash
+asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+asdf plugin add packer            
+asdf plugin add pulumi
+asdf plugin add pnpm  
+asdf install
+```
 
 ### Setup direnv
 The project uses [direnv](https://direnv.net/) to manage environment variables. To use it, install direnv and run `direnv allow` in the project directory.
 
-create `.envrc.override` file in the project directory and add the following:
+Create `.envrc.override` file in the project directory and add the following:
 
 ```bash
 # run `doctl compute ssh-key list` to get name and id
@@ -38,22 +49,26 @@ export REPORT_NAME_SNS=""
 export REPORT_NAME_BITMAP=""
 export REPORT_NAME_BRC20=""
 ```
+
+Make sure you run `direnv allow` so the new environment variables are applied.
+
 ### Build Image on DigitalOcean
 
-edit file `provision/templates/opi.pkr.hcl` to change the region and source. Then run the following command to build the image. Remember the image id after build is succeed.
+Edit file `provision/templates/opi.pkr.hcl` to change the region and source. Then run the following command to build the image. Remember the image id after build is succeed.
 
 ```bash
-cd provision/templates;
-packer build opi.pkr.hcl; 
+cd provision/templates
+packer init opi.pkr.hcl
+packer build opi.pkr.hcl
 ```
 
 ### Deploy with pulumi
 
-edit file `deploy/src/index.ts` to invoke create function to create instance, use the image id we build from packer in the previous step.
+Edit file `deploy/src/index.ts` to invoke create function to create instance, use the image id we build from packer in the previous step.
 
 ```bash
-cd deploy;
-pulumi up;
+cd deploy
+pulumi up
 ```
 
 This will deploy a DigitalOcean droplet with Docker and run the necessary OPI containers.

@@ -245,21 +245,21 @@ const instances = [
     name: 'opi1sfo',
     region: 'sfo3',
     size: 's-8vcpu-16gb-amd',
-    image: '149367446',
+    image: '150251462',
   }),
 
   create({
     name: 'opi1lon',
     region: 'lon1',
     size: 's-8vcpu-16gb-amd',
-    image: '149439505',
+    image: '150251468',
   }),
 
   create({
     name: 'opi1sgp',
     region: 'sgp1',
     size: 's-8vcpu-16gb-amd',
-    image: '149439499',
+    image: '150251464',
   }),
 ]
 
