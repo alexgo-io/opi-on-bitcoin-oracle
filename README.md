@@ -18,10 +18,21 @@ The project contains the following files:
 ### Setup asdf
 The project uses [asdf](https://asdf-vm.com/) to manage tool versions. To use it, install asdf and run `asdf install` in the project directory. This will install `packer`, `pulumi`, `pnpm`, and `nodejs` with version specified in `.tool-versions`
 
+```bash
+asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+asdf plugin add packer            
+asdf plugin add pulumi
+asdf plugin add pnpm  
+asdf install
+```
+
 ### Setup direnv
 The project uses [direnv](https://direnv.net/) to manage environment variables. To use it, install direnv and run `direnv allow` in the project directory.
 
 create `.envrc.override` file in the project directory and add the following:
+
+### Install DigitalOcean CLI
+See [How to Install and Configure doctl](https://docs.digitalocean.com/reference/doctl/how-to/install/)
 
 ```bash
 # run `doctl compute ssh-key list` to get name and id
