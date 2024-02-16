@@ -221,7 +221,7 @@ export function create(params: {
 
     // start opi
     new remote.Command(
-      `${name}:start-opi.`,
+      `${name}:start-opi...`,
       {
         connection,
         create: pulumi.interpolate`cd ${volumePathPrint.stdout} && docker-compose -f opi.docker-compose.yaml pull && docker-compose -f opi.docker-compose.yaml up -d`,
