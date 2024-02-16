@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Pull latest images
+docker-compose -f restore.docker-compose.yaml pull
 # Start all services
 docker-compose -f restore.docker-compose.yaml up -d
 
