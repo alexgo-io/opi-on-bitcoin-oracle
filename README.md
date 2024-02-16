@@ -15,15 +15,23 @@ The project contains the following files:
 
 ## Getting Started
 
+### DigitalOcean account
+
+You need an account at DigitalOcean and need to be familiar with 
+
+- [doctl Command Line Interface (CLI)](https://docs.digitalocean.com/reference/doctl/)
+- [How to Upload SSH Public Keys to a DigitalOcean Team](https://docs.digitalocean.com/products/droplets/how-to/add-ssh-keys/to-team/)
+- [How to Create a Personal Access Token](https://docs.digitalocean.com/reference/api/create-personal-access-token/)
+
 ### Setup asdf
 
 The project uses [asdf](https://asdf-vm.com/) to manage tool versions. To use it, install asdf and run `asdf install` in the project directory. This will install `packer`, `pulumi`, `pnpm`, and `nodejs` with version specified in `.tool-versions`
 
 ```bash
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-asdf plugin add packer
+asdf plugin add packer            
 asdf plugin add pulumi
-asdf plugin add pnpm
+asdf plugin add pnpm  
 asdf install
 ```
 
@@ -31,20 +39,18 @@ asdf install
 
 The project uses [direnv](https://direnv.net/) to manage environment variables. To use it, install direnv and run `direnv allow` in the project directory.
 
-create `.envrc.override` file in the project directory and add the following:
+Create `.envrc.override` file in the project directory and add the following:
 
 ### Install DigitalOcean CLI
-
-See [How to Install and Configure doctl](https://docs.digitalocean.com/reference/doctl/how-to/install/)
 
 ```bash
 # run `doctl compute ssh-key list` to get name and id
 export DIGITAL_OCEAN_SSH_KEY_NAME=""
 export DIGITAL_OCEAN_SSH_KEY_ID=""
+# the path to the SSH private key that maps to the above SSH key name/ID, such as `~/.ssh/id_rsa`
+export PRIVATE_KEY_PATH=""
 # visit `https://cloud.digitalocean.com/account/api/tokens` to get API key
 export DIGITAL_OCEAN_API_KEY=""
-# the path to the private key which is able to login machine. such as `~/.ssh/id_rsa`
-export PRIVATE_KEY_PATH=""
 
 # set following name for report to OPI network.
 # dashboard url: https://opi.network/
@@ -53,30 +59,39 @@ export REPORT_NAME_BITMAP=""
 export REPORT_NAME_BRC20=""
 ```
 
+Make sure you run `direnv allow` so the new environment variables are applied.
+
 ### Build Image on DigitalOcean
 
-edit file `provision/templates/opi.pkr.hcl` to change the region and source. Then run the following command to build the image. Remember the image id after build is succeed.
+Edit file `provision/templates/opi.pkr.hcl` to change the region and source. Then run the following command to build the image. Remember the image id after build is succeed.
 
 ```bash
-cd provision/templates;
-packer build opi.pkr.hcl;
+cd provision/templates
+packer init opi.pkr.hcl
+packer build opi.pkr.hcl
 ```
 
 ### Deploy with pulumi
 
-1. edit file `deploy/src/index.ts` to invoke create function to create instance, use the image id we build from packer in the previous step.
+1. Edit file `deploy/src/index.ts` to invoke create function to create instance, use the image id we build from packer in the previous step.
+2. Install dependencies
 
-2. set digitalocean token via pulumi config set, make sure you have `DIGITALOCEAN_TOKEN` in your environment variables.
+```bash
+cd deploy
+pnpm install
+```
+
+3. Set digitalocean token via pulumi config set, make sure you have `DIGITALOCEAN_TOKEN` in your environment variables.
 
 ```bash
 pulumi config set digitalocean:token $DIGITALOCEAN_TOKEN --secret
 ```
 
-3. run pulumi up to deploy the infrastructure.
+4. Run pulumi up to deploy the infrastructure.
 
 ```bash
-cd deploy;
-pulumi up;
+cd deploy
+pulumi up
 ```
 
 This will deploy a DigitalOcean droplet with Docker and run the necessary OPI containers.
