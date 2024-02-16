@@ -81,10 +81,10 @@ cd deploy
 pnpm install
 ```
 
-3. Set digitalocean token via pulumi config set, make sure you have `DIGITALOCEAN_TOKEN` in your environment variables.
+3. Set digitalocean token via pulumi config set, make sure you have `DIGITAL_OCEAN_API_KEY` in your environment variables.
 
 ```bash
-pulumi config set digitalocean:token $DIGITALOCEAN_TOKEN --secret
+pulumi config set digitalocean:token $DIGITAL_OCEAN_API_KEY --secret
 ```
 
 4. Run pulumi up to deploy the infrastructure.
