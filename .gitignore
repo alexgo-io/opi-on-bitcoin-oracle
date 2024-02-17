@@ -9,3 +9,4 @@ configs/sns_index
 .envrc.override
 deploy/node_modules
 .vscode/sftp.json
+deploy/Pulumi.*.yaml
