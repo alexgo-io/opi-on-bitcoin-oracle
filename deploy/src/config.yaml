@@ -1,0 +1,10 @@
+services:
+  opi1sfo:
+    region: 'sfo3'
+    size: 's-8vcpu-16gb-amd'
+  opi1lon:
+    region: 'lon1'
+    size: 's-8vcpu-16gb-amd'
+  opi1sgp:
+    region: 'sgp1'
+    size: 's-8vcpu-16gb-amd'

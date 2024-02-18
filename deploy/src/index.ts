@@ -11,15 +11,17 @@ import fs from 'fs'
 import { local, remote, types } from '@pulumi/command'
 import { createHash } from 'crypto'
 import * as time from '@pulumiverse/time'
+import YAML from 'yaml'
 
 import { getPrivateKey, sshKey } from './keys'
 
 export function provisionInstance(params: {
+  name: string
   connection: types.input.remote.ConnectionArgs
 }) {
-  const { connection } = params
+  const { connection, name } = params
 
-  const setupCommands = execScriptsOnRemote(connection, [
+  const setupCommands = execScriptsOnRemote(name, connection, [
     root('deploy/src/provision/configure-apt-mock.sh'),
     root('deploy/src/provision/configure-apt.sh'),
     root('deploy/src/provision/setup.sh'),
@@ -27,7 +29,7 @@ export function provisionInstance(params: {
   ])
 
   const reboot = new remote.Command(
-    'reboot',
+    `${name}:reboot`,
     {
       connection,
       create: `bash -c 'sleep 10 && /sbin/shutdown -r now &'`,
@@ -37,7 +39,7 @@ export function provisionInstance(params: {
   )
 
   const wait = new time.Sleep(
-    'wait60Seconds',
+    `${name}:wait60Seconds`,
     { createDuration: '60s' },
     {
       dependsOn: [reboot],
@@ -45,6 +47,7 @@ export function provisionInstance(params: {
   )
 
   return execScriptOnRemote(
+    name,
     connection,
     root('deploy/src/provision/cleanup.sh'),
     {
@@ -54,6 +57,7 @@ export function provisionInstance(params: {
 }
 
 export function execScriptsOnRemote(
+  name: string,
   connection: types.input.remote.ConnectionArgs,
   locations: string[],
 ) {
@@ -61,9 +65,9 @@ export function execScriptsOnRemote(
   const commands: remote.Command[] = []
   for (const loc of locations) {
     if (command == null) {
-      command = execScriptOnRemote(connection, loc)
+      command = execScriptOnRemote(name, connection, loc)
     } else {
-      command = execScriptOnRemote(connection, loc, {
+      command = execScriptOnRemote(name, connection, loc, {
         commandOpts: {
           dependsOn: [command],
         },
@@ -77,6 +81,7 @@ export function execScriptsOnRemote(
 }
 
 export function execScriptOnRemote(
+  name: string,
   connection: types.input.remote.ConnectionArgs,
   loc: string,
   options: {
@@ -92,7 +97,7 @@ export function execScriptOnRemote(
 
   if (options.cwd) {
     return new remote.Command(
-      `run:remote[d]: ${unroot(loc)}`,
+      `${name}:run:remote[d]: ${unroot(loc)}`,
       {
         connection,
         create: pulumi.interpolate`mkdir -p ${options.cwd};
@@ -107,7 +112,7 @@ export function execScriptOnRemote(
     )
   } else {
     return new remote.Command(
-      `run:remote: ${unroot(loc)}`,
+      `${name}:run:remote: ${unroot(loc)}`,
       {
         connection,
         create: createContent,
@@ -147,7 +152,7 @@ export function create(params: { name: string; region: string; size: string }) {
     dialErrorLimit: 50,
   }
 
-  const provision = provisionInstance({ connection })
+  const provision = provisionInstance({name, connection })
 
   const copyConfigDir = (loc: string, remotePath: pulumi.Output<string>) => {
     if (!fs.existsSync(loc)) {
@@ -230,12 +235,13 @@ export function create(params: { name: string; region: string; size: string }) {
   )
 
   // create swap space
-  execScriptOnRemote(connection, root('deploy/src/scripts/mkswap.sh'), {
+  execScriptOnRemote(name, connection, root('deploy/src/scripts/mkswap.sh'), {
     commandOpts: { dependsOn: [provision] },
   })
 
   // restore pg database and ord_data
   const restore = execScriptOnRemote(
+    name,
     connection,
     root('deploy/src/scripts/restore.sh'),
     {
@@ -316,26 +322,46 @@ export function create(params: { name: string; region: string; size: string }) {
   return { droplet, volume, name }
 }
 
-const instances = [
-  // create({
-  //   name: 'opi1sfo',
-  //   region: 'sfo3',
-  //   size: 's-8vcpu-16gb-amd',
-  //   image: '150251462',
-  // }),
+type Instance = {
+  name: string;
+  region: string;
+  size: string;
+};
 
-  // create({
-  //   name: 'opi1lon',
-  //   region: 'lon1',
-  //   size: 's-8vcpu-16gb-amd',
-  //   image: '150251468',
-  // }),
+function validateInstance(instance: any): instance is Instance {
+  return typeof instance.name === 'string'
+    && typeof instance.region === 'string'
+    && typeof instance.size === 'string';
+}
 
-  create({
-    name: 'opi1sgp-uni',
-    region: 'sgp1',
-    size: 's-8vcpu-16gb-amd',
-  }),
-]
+function readYamlAndCreateInstance() {
+  // read yaml file
+  const file = fs.readFileSync(root('deploy/src/config.yaml'), 'utf8');
+
+  // parse yaml file
+  const data = YAML.parse(file);
+
+  let instances = [];
+  
+  for (let serviceName in data.services) {
+    // validate required fields
+    const instance = {
+      name: serviceName,
+      region: data.services[serviceName].region,
+      size: data.services[serviceName].size,
+    };
+    
+    if (validateInstance(instance)) {
+      // create instance and push to instances array
+      instances.push(create(instance));
+    } else {
+      throw new Error(`Invalid instance data '${JSON.stringify(instance)}'`);
+    }
+  }
+  
+  return instances;
+}
+
+const instances = readYamlAndCreateInstance();
 
 console.log(`created: ${instances.length} instances`)
