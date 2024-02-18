@@ -12,6 +12,7 @@
     "@pulumi/digitalocean": "4.25.1",
     "@pulumi/pulumi": "3.104.2",
     "@pulumiverse/time": "^0.0.16",
+    "inquirer": "^8.0.0",
     "yaml": "^2.3.4"
   }
 }
