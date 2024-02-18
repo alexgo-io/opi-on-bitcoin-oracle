@@ -39,8 +39,9 @@ services:
     region: '${region}'
     size: '${size}'
       `;
-        fs.writeFileSync('src/config.yaml', outputTemplate);
-        console.log(`file generated at: ${path.resolve('src/config.yaml')}`);
+        const outputPath = path.resolve(__dirname, 'config.user.yaml');
+        fs.writeFileSync(outputPath, outputTemplate);
+        console.log(`file generated at: ${path.resolve(outputPath)}`);
     });
 
     

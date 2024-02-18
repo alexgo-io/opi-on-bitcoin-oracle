@@ -152,7 +152,7 @@ export function create(params: { name: string; region: string; size: string }) {
     dialErrorLimit: 50,
   }
 
-  const provision = provisionInstance({name, connection })
+  const provision = provisionInstance({ name, connection })
 
   const copyConfigDir = (loc: string, remotePath: pulumi.Output<string>) => {
     if (!fs.existsSync(loc)) {
@@ -323,45 +323,54 @@ export function create(params: { name: string; region: string; size: string }) {
 }
 
 type Instance = {
-  name: string;
-  region: string;
-  size: string;
-};
+  name: string
+  region: string
+  size: string
+}
 
 function validateInstance(instance: any): instance is Instance {
-  return typeof instance.name === 'string'
-    && typeof instance.region === 'string'
-    && typeof instance.size === 'string';
+  return (
+    typeof instance.name === 'string' &&
+    typeof instance.region === 'string' &&
+    typeof instance.size === 'string'
+  )
 }
 
 function readYamlAndCreateInstance() {
   // read yaml file
-  const file = fs.readFileSync(root('deploy/src/config.yaml'), 'utf8');
+
+  const file = (() => {
+    if (fs.existsSync(root('deploy/src/config.user.yaml'))) {
+      return fs.readFileSync(root('deploy/src/config.user.yaml'), 'utf8')
+    }
+
+    return fs.readFileSync(root('deploy/src/config.yaml'), 'utf8')
+  })()
 
   // parse yaml file
-  const data = YAML.parse(file);
+  const data = YAML.parse(file)
 
-  let instances = [];
-  
+  let instances = []
+
   for (let serviceName in data.services) {
     // validate required fields
     const instance = {
       name: serviceName,
       region: data.services[serviceName].region,
       size: data.services[serviceName].size,
-    };
-    
+    }
+
     if (validateInstance(instance)) {
       // create instance and push to instances array
-      instances.push(create(instance));
+      instances.push(create(instance))
     } else {
-      throw new Error(`Invalid instance data '${JSON.stringify(instance)}'`);
+      throw new Error(`Invalid instance data '${JSON.stringify(instance)}'`)
     }
   }
-  
-  return instances;
+
+  return instances
 }
 
-const instances = readYamlAndCreateInstance();
+const instances = readYamlAndCreateInstance()
 
 console.log(`created: ${instances.length} instances`)
