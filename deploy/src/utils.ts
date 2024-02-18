@@ -13,6 +13,10 @@ export function root(filePath: string) {
   throw new Error(`File not found: ${p}`)
 }
 
+export function root$(filePath: string) {
+  return path.resolve(__dirname, `../../${filePath}`)
+}
+
 // convert the absolute path from root(filePath: string) to relative path
 // example: unroot(root(a)) === a
 export function unroot(filePath: string) {

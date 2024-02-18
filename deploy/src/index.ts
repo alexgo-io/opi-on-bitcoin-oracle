@@ -3,6 +3,7 @@ import {
   generateDirectoryHash,
   getScript,
   root,
+  root$,
   transformFile,
   unroot,
 } from './utils'
@@ -340,7 +341,7 @@ function readYamlAndCreateInstance() {
   // read yaml file
 
   const file = (() => {
-    if (fs.existsSync(root('deploy/src/config.user.yaml'))) {
+    if (fs.existsSync(root$('deploy/src/config.user.yaml'))) {
       return fs.readFileSync(root('deploy/src/config.user.yaml'), 'utf8')
     }
 
