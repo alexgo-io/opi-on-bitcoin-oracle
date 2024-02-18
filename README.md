@@ -53,9 +53,7 @@ export DIGITAL_OCEAN_API_KEY=""
 
 # set following name for report to OPI network.
 # dashboard url: https://opi.network/
-export REPORT_NAME_SNS=""
-export REPORT_NAME_BITMAP=""
-export REPORT_NAME_BRC20=""
+export REPORT_NAME=""
 ```
 
 Make sure you run `direnv allow` so the new environment variables are applied.
