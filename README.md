@@ -97,6 +97,17 @@ pulumi up
 This will deploy a DigitalOcean droplet with Docker and run the necessary OPI containers.
 The droplet can be accessed via SSH using the defined SSH key.
 
+# Others
+
+## ssh config setting
+it's recommended to add following to `~/.ssh/config` to avoid interrupt ssh connection while provision the instance.
+
+```
+TCPKeepAlive yes
+ServerAliveInterval 30
+ServerAliveCountMax 4
+```
+
 # Resources
 
 - [Pulumi DigitalOcean Provider](https://www.pulumi.com/docs/reference/pkg/digitalocean/)
