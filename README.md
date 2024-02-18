@@ -25,11 +25,10 @@ You need an account at DigitalOcean and need to be familiar with
 
 ### Setup asdf
 
-The project uses [asdf](https://asdf-vm.com/) to manage tool versions. To use it, install asdf and run `asdf install` in the project directory. This will install `packer`, `pulumi`, `pnpm`, and `nodejs` with version specified in `.tool-versions`
+The project uses [asdf](https://asdf-vm.com/) to manage tool versions. To use it, install asdf and run `asdf install` in the project directory. This will install `pulumi`, `pnpm`, and `nodejs` with version specified in `.tool-versions`
 
 ```bash
 asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-asdf plugin add packer            
 asdf plugin add pulumi
 asdf plugin add pnpm  
 asdf install
@@ -61,19 +60,9 @@ export REPORT_NAME_BRC20=""
 
 Make sure you run `direnv allow` so the new environment variables are applied.
 
-### Build Image on DigitalOcean
-
-Edit file `provision/templates/opi.pkr.hcl` to change the region and source. Then run the following command to build the image. Remember the image id after build is succeed.
-
-```bash
-cd provision/templates
-packer init opi.pkr.hcl
-packer build opi.pkr.hcl
-```
-
 ### Deploy with pulumi
 
-1. Edit file `deploy/src/index.ts` to invoke create function to create instance, use the image id we build from packer in the previous step.
+1. Edit file `deploy/src/index.ts` to invoke create function to create instance.
 2. Install dependencies
 
 ```bash
@@ -115,7 +104,6 @@ ServerAliveCountMax 4
 - [asdf](https://asdf-vm.com/)
 - [direnv](https://direnv.net/)
 - [Pulumi](https://www.pulumi.com/)
-- [Packer](https://www.packer.io/)
 - [Node.js](https://nodejs.org/)
 - [Docker](https://www.docker.com/)
 - [DigitalOcean](https://www.digitalocean.com/)
