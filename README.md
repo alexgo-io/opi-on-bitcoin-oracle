@@ -58,9 +58,21 @@ export REPORT_NAME=""
 
 Make sure you run `direnv allow` so the new environment variables are applied.
 
-### Deploy with pulumi
+### Bootstrap Automatically
+A bootstrap script is located at `tools/bin/bootstrap`. After setup above requirements, run `bootstrap` to initialize the project. It will run the following steps:
 
-1. Edit file `deploy/src/index.ts` to invoke create function to create instance.
+- `pnpm install` to install dependencies
+- `node gen-config.js` to generate config.user.yaml file, which will take precedence over config.yaml
+- set digital ocean api key to pulumi secrets.
+- run pulumi up to deploy the infrastructure.
+
+```bash
+bootstrap
+```
+
+### Deploy Manually
+
+1. Edit file `deploy/src/config.yaml` to config the settings.
 2. Install dependencies
 
 ```bash
