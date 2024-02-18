@@ -14,6 +14,9 @@ dependencies:
   '@pulumi/pulumi':
     specifier: 3.104.2
     version: 3.104.2
+  '@pulumiverse/time':
+    specifier: ^0.0.16
+    version: 0.0.16
 
 devDependencies:
   '@types/node':
@@ -300,6 +303,14 @@ packages:
 
   /@pulumi/query@0.3.0:
     resolution: {integrity: sha512-xfo+yLRM2zVjVEA4p23IjQWzyWl1ZhWOGobsBqRpIarzLvwNH/RAGaoehdxlhx4X92302DrpdIFgTICMN4P38w==}
+    dev: false
+
+  /@pulumiverse/time@0.0.16:
+    resolution: {integrity: sha512-n6GQtpl1jERFecQHCSnNg6QhYZFQSRl0NOwRJciVQI3uqcn+iBPCMN7tRkTec1ZEqhRlQPHu7gLkn5x0Ydb2xw==}
+    dependencies:
+      '@pulumi/pulumi': 3.104.2
+    transitivePeerDependencies:
+      - supports-color
     dev: false
 
   /@sindresorhus/is@4.6.0:

@@ -34,10 +34,21 @@ EOF
 rm -rf /var/log/unattended-upgrades
 apt-get purge unattended-upgrades -y
 
-apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+apt-get install -yq apt-transport-https ca-certificates curl software-properties-common \
+    ca-certificates \
+    curl \
+    gnupg \
+    wget \
+    git \
+    build-essential \
+    ncdu \
+    bpytop \
+    pbzip2 \
+    lsb-release
+
 apt-get -yq update
 apt-get -yq dist-upgrade
 
 # Install apt-fast using quick-install.sh
 # https://github.com/ilikenwf/apt-fast
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/ilikenwf/apt-fast/master/quick-install.sh)"
+# bash -c "$(curl -fsSL https://raw.githubusercontent.com/ilikenwf/apt-fast/master/quick-install.sh)"

@@ -1,7 +1,3 @@
-// ===============
-// Create Droplet
-// ===============
-
 import * as digitalocean from '@pulumi/digitalocean'
 import {
   generateDirectoryHash,
@@ -14,35 +10,144 @@ import * as pulumi from '@pulumi/pulumi'
 import fs from 'fs'
 import { local, remote, types } from '@pulumi/command'
 import { createHash } from 'crypto'
+import * as time from '@pulumiverse/time'
+
 import { getPrivateKey, sshKey } from './keys'
 
-export function create(params: {
-  name: string
-  region: string
-  size: string
-  image: string
+export function provisionInstance(params: {
+  connection: types.input.remote.ConnectionArgs
 }) {
-  const { region, size, name, image } = params
+  const { connection } = params
+
+  const setupCommands = execScriptsOnRemote(connection, [
+    root('deploy/src/provision/configure-apt-mock.sh'),
+    root('deploy/src/provision/configure-apt.sh'),
+    root('deploy/src/provision/setup.sh'),
+    root('deploy/src/provision/pull.sh'),
+  ])
+
+  const reboot = new remote.Command(
+    'reboot',
+    {
+      connection,
+      create: `bash -c 'sleep 10 && /sbin/shutdown -r now &'`,
+      environment: { DEBIAN_FRONTEND: 'noninteractive' },
+    },
+    { dependsOn: setupCommands },
+  )
+
+  const wait = new time.Sleep(
+    'wait60Seconds',
+    { createDuration: '60s' },
+    {
+      dependsOn: [reboot],
+    },
+  )
+
+  return execScriptOnRemote(
+    connection,
+    root('deploy/src/provision/cleanup.sh'),
+    {
+      commandOpts: { dependsOn: [wait] },
+    },
+  )
+}
+
+export function execScriptsOnRemote(
+  connection: types.input.remote.ConnectionArgs,
+  locations: string[],
+) {
+  let command: remote.Command | null = null
+  const commands: remote.Command[] = []
+  for (const loc of locations) {
+    if (command == null) {
+      command = execScriptOnRemote(connection, loc)
+    } else {
+      command = execScriptOnRemote(connection, loc, {
+        commandOpts: {
+          dependsOn: [command],
+        },
+      })
+    }
+
+    commands.push(command)
+  }
+
+  return commands
+}
+
+export function execScriptOnRemote(
+  connection: types.input.remote.ConnectionArgs,
+  loc: string,
+  options: {
+    cwd?: pulumi.Output<string>
+    commandOpts?: pulumi.CustomResourceOptions
+  } = {},
+) {
+  // cwd is the CWD
+  const createContent = fs.readFileSync(loc, 'utf-8')
+  const createContentHash = createHash('md5')
+    .update(createContent)
+    .digest('hex')
+
+  if (options.cwd) {
+    return new remote.Command(
+      `run:remote[d]: ${unroot(loc)}`,
+      {
+        connection,
+        create: pulumi.interpolate`mkdir -p ${options.cwd};
+          cd ${options.cwd};
+          ${createContent}`,
+        triggers: [createContentHash, loc],
+      },
+      {
+        customTimeouts: { create: '240m' },
+        ...options.commandOpts,
+      },
+    )
+  } else {
+    return new remote.Command(
+      `run:remote: ${unroot(loc)}`,
+      {
+        connection,
+        create: createContent,
+        triggers: [createContentHash, loc],
+      },
+      {
+        customTimeouts: { create: '240m' },
+        ...options.commandOpts,
+      },
+    )
+  }
+}
+
+const image = 'ubuntu-22-04-x64'
+
+export function create(params: { name: string; region: string; size: string }) {
+  const { region, size, name } = params
   const snapshotId = (() => {
     const id = process.env['OPI_VOLUME_SNAPSHOT_ID']
     return id?.length == 0 ? undefined : id
   })()
 
   // create instance
-  const volume = new digitalocean.Volume(`${name}volume`, {
-    region,
-    size: parseInt(process.env['OPI_VOLUME_SIZE'] ?? '1000', 10),
-    initialFilesystemType: 'ext4',
-    snapshotId,
-  })
 
   const droplet = new digitalocean.Droplet(`${name}-droplet`, {
     image,
     region,
     size,
-    // monitoring: true,
     sshKeys: [sshKey.id],
   })
+  const privateKey = getPrivateKey()
+
+  const connection: types.input.remote.ConnectionArgs = {
+    host: droplet.ipv4Address,
+    user: 'root',
+    privateKey,
+    dialErrorLimit: 50,
+  }
+
+  const provision = provisionInstance({ connection })
 
   const copyConfigDir = (loc: string, remotePath: pulumi.Output<string>) => {
     if (!fs.existsSync(loc)) {
@@ -55,6 +160,16 @@ export function create(params: {
     })
   }
 
+  const volume = new digitalocean.Volume(
+    `${name}volume`,
+    {
+      region,
+      size: parseInt(process.env['OPI_VOLUME_SIZE'] ?? '1000', 10),
+      initialFilesystemType: 'ext4',
+      snapshotId,
+    },
+    { dependsOn: [provision, droplet] },
+  )
   // mount disk
   const volumeAttachment = new digitalocean.VolumeAttachment(
     `${name}-volume-attachment`,
@@ -63,14 +178,6 @@ export function create(params: {
       volumeId: volume.id,
     },
   )
-
-  const privateKey = getPrivateKey()
-
-  const connection: types.input.remote.ConnectionArgs = {
-    host: droplet.ipv4Address,
-    user: 'root',
-    privateKey,
-  }
 
   const volumePathPrint = new remote.Command(
     `${name}-read-volume-path`,
@@ -117,58 +224,27 @@ export function create(params: {
     })
   })
 
-  const execScriptOnRemote = (
-    loc: string,
-    options: { cwd?: pulumi.Output<string>; commandOpts?: any } = {},
-  ) => {
-    // cwd is the CWD
-    const createContent = fs.readFileSync(root(loc), 'utf-8')
-    const createContentHash = createHash('md5')
-      .update(createContent)
-      .digest('hex')
-
-    if (options.cwd) {
-      return new remote.Command(
-        `${name}:run[remote]: ${loc}`,
-        {
-          connection,
-          create: pulumi.interpolate`mkdir -p ${options.cwd};
-            cd ${options.cwd};
-            ${createContent}`,
-          triggers: [createContentHash, loc],
-        },
-        {
-          ...options.commandOpts,
-        },
-      )
-    } else {
-      return new remote.Command(
-        `${name}:run[remote]: ${loc}`,
-        {
-          connection,
-          create: createContent,
-          triggers: [createContentHash, loc],
-        },
-        options.commandOpts,
-      )
-    }
-  }
-
   const cpConfig = copyConfigDir(
     root('configs'),
     pulumi.interpolate`${volumePathPrint.stdout}`,
   )
 
   // create swap space
-  execScriptOnRemote('deploy/src/scripts/mkswap.sh')
+  execScriptOnRemote(connection, root('deploy/src/scripts/mkswap.sh'), {
+    commandOpts: { dependsOn: [provision] },
+  })
 
   // restore pg database and ord_data
-  const restore = execScriptOnRemote('deploy/src/scripts/restore.sh', {
-    cwd: pulumi.interpolate`/${volumePathPrint.stdout}`,
-    commandOpts: {
-      dependsOn: [cpConfig, cpRestoreDockerCompose],
+  const restore = execScriptOnRemote(
+    connection,
+    root('deploy/src/scripts/restore.sh'),
+    {
+      cwd: pulumi.interpolate`${volumePathPrint.stdout}`,
+      commandOpts: {
+        dependsOn: [cpConfig, cpRestoreDockerCompose],
+      },
     },
-  })
+  )
 
   // cp service docker-compose file
   /**
@@ -241,25 +317,24 @@ export function create(params: {
 }
 
 const instances = [
-  create({
-    name: 'opi1sfo',
-    region: 'sfo3',
-    size: 's-8vcpu-16gb-amd',
-    image: '150251462',
-  }),
+  // create({
+  //   name: 'opi1sfo',
+  //   region: 'sfo3',
+  //   size: 's-8vcpu-16gb-amd',
+  //   image: '150251462',
+  // }),
+
+  // create({
+  //   name: 'opi1lon',
+  //   region: 'lon1',
+  //   size: 's-8vcpu-16gb-amd',
+  //   image: '150251468',
+  // }),
 
   create({
-    name: 'opi1lon',
-    region: 'lon1',
-    size: 's-8vcpu-16gb-amd',
-    image: '150251468',
-  }),
-
-  create({
-    name: 'opi1sgp',
+    name: 'opi1sgp-uni',
     region: 'sgp1',
     size: 's-8vcpu-16gb-amd',
-    image: '150251464',
   }),
 ]
 

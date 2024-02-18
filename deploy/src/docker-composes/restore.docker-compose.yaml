@@ -16,6 +16,7 @@ services:
       retries: 5
   restore:
     image: ${OPI_IMAGE}
+    container_name: restore
     command: "bash -c \"cd /usr/local/OPI/modules/ && python restore.py\""
     volumes:
       - ${WORKSPACE_ROOT}/configs/bitmap_api/.env:/usr/local/OPI/modules/bitmap_api/.env

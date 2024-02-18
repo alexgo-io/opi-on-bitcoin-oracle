@@ -81,7 +81,17 @@ generate_env_bitmap_index() {
         echo "REPORT_TO_INDEXER=\"${REPORT_TO_INDEXER:-true}\""
         echo "REPORT_URL=\"${REPORT_URL:-https://api.opi.network/report_block}\""
         echo "REPORT_RETRIES=\"${REPORT_RETRIES:-10}\""
-        echo "REPORT_NAME=\"${REPORT_NAME_BITMAP:-alexgo_opi_bitmap_index}\""
+        if [ -z "$REPORT_NAME_BITMAP" ]
+        then
+          if [ -z "$REPORT_NAME" ]
+          then
+            echo "REPORT_NAME=\"alex_opi_bitmap_index\""
+          else
+            echo "REPORT_NAME=\"${REPORT_NAME}_bitmap\""
+          fi
+        else
+          echo "REPORT_NAME=\"${REPORT_NAME_BITMAP}\""
+        fi
     } >"bitmap_index/.env"
 }
 
@@ -169,7 +179,17 @@ generate_env_brc20_index() {
         echo "REPORT_TO_INDEXER=\"${REPORT_TO_INDEXER:-true}\""
         echo "REPORT_URL=\"${REPORT_URL:-https://api.opi.network/report_block}\""
         echo "REPORT_RETRIES=\"${REPORT_RETRIES:-10}\""
-        echo "REPORT_NAME=\"${REPORT_NAME_BRC20:-alexgo_opi_brc20_index}\""
+        if [ -z "$REPORT_NAME_BRC20" ]
+        then
+          if [ -z "$REPORT_NAME" ]
+          then
+            echo "REPORT_NAME=\"alex_opi_brc20_index\""
+          else
+            echo "REPORT_NAME=\"${REPORT_NAME}_brc20\""
+          fi
+        else
+          echo "REPORT_NAME=\"${REPORT_NAME_BRC20}\""
+        fi
     } >"brc20_index/.env"
 }
 
@@ -307,7 +327,17 @@ generate_env_sns_index() {
         echo "REPORT_TO_INDEXER=\"${REPORT_TO_INDEXER:-true}\""
         echo "REPORT_URL=\"${REPORT_URL:-https://api.opi.network/report_block}\""
         echo "REPORT_RETRIES=\"${REPORT_RETRIES:-10}\""
-        echo "REPORT_NAME=\"${REPORT_NAME_SNS:-alex_opi_sns_index}\""
+        if [ -z "$REPORT_NAME_SNS" ]
+        then
+          if [ -z "$REPORT_NAME" ]
+          then
+            echo "REPORT_NAME=\"alex_opi_sns_index\""
+          else
+            echo "REPORT_NAME=\"${REPORT_NAME}_sns\""
+          fi
+        else
+          echo "REPORT_NAME=\"${REPORT_NAME_SNS}\""
+        fi
     } >"sns_index/.env"
 }
 
