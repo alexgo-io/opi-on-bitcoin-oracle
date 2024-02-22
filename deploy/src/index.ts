@@ -166,13 +166,12 @@ export function create(params: { name: string; region: string; size: string }) {
     const hash = generateDirectoryHash(loc).slice(0, 5)
     const privateKeyPassword = process.env['PRIVATE_KEY_PASSWORD']
 
-    const privateKeyPath = process.env['PRIVATE_KEY_PATH']
     // Use an expect script to interact with ssh-add securely, if privateKeyPassword is set.
     let addKeyCommand = privateKeyPassword != null && privateKeyPassword?.length > 0
-      ? `expect -c 'spawn ssh-add ${privateKeyPath}; expect "Enter passphrase for"; send "${privateKeyPassword}\\r"; interact'`
-      : `ssh-add ${privateKeyPath}`
+      ? `expect -c 'spawn ssh-add ${privateKey}; expect "Enter passphrase for"; send "${privateKeyPassword}\\r"; interact'`
+      : `ssh-add ${privateKey}`
 
-    const rsyncCommand = `eval $(ssh-agent -s) && ${addKeyCommand} && RSYNC_RSH="ssh -i ${privateKeyPath}" rsync -avP ${loc} ${connection.user}@${droplet.ipv4Address}:${remotePath} && kill $SSH_AGENT_PID`
+    const rsyncCommand = `eval $(ssh-agent -s) && ${addKeyCommand} && RSYNC_RSH="ssh -i ${privateKey}" rsync -avP ${loc} ${connection.user}@${droplet.ipv4Address}:${remotePath} && kill $SSH_AGENT_PID`
     return new local.Command(`${name}:copyFiles ${unroot(loc)}`, {
       create: pulumi.interpolate`${rsyncCommand}`,
       triggers: [hash, loc, remotePath],
