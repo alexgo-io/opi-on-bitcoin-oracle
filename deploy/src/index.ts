@@ -152,10 +152,6 @@ export function create(params: { name: string; region: string; size: string }) {
     privateKey,
     dialErrorLimit: 50,
   }
-  const privateKeyPassword = process.env['PRIVATE_KEY_PASSWORD']
-  if (privateKeyPassword != null && privateKeyPassword.length > 0) {
-    connection.privateKeyPassword = privateKeyPassword
-  }
 
   const provision = provisionInstance({ name, connection })
 
@@ -164,17 +160,8 @@ export function create(params: { name: string; region: string; size: string }) {
       throw new Error(`not found: ${loc}`)
     }
     const hash = generateDirectoryHash(loc).slice(0, 5)
-    const privateKeyPassword = process.env['PRIVATE_KEY_PASSWORD']
-
-    const privateKeyPath = process.env['PRIVATE_KEY_PATH']
-    // Use an expect script to interact with ssh-add securely, if privateKeyPassword is set.
-    let addKeyCommand = privateKeyPassword != null && privateKeyPassword?.length > 0
-      ? `expect -c 'spawn ssh-add ${privateKeyPath}; expect "Enter passphrase for"; send "${privateKeyPassword}\\r"; interact'`
-      : `ssh-add ${privateKeyPath}`
-
-    const rsyncCommand = `eval $(ssh-agent -s) && ${addKeyCommand} && RSYNC_RSH="ssh -i ${privateKeyPath}" rsync -avP ${loc} ${connection.user}@${droplet.ipv4Address}:${remotePath} && kill $SSH_AGENT_PID`
     return new local.Command(`${name}:copyFiles ${unroot(loc)}`, {
-      create: pulumi.interpolate`${rsyncCommand}`,
+      create: pulumi.interpolate`rsync -avP ${loc} ${connection.user}@${droplet.ipv4Address}:${remotePath}`,
       triggers: [hash, loc, remotePath],
     })
   }
