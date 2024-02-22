@@ -161,7 +161,7 @@ export function create(params: { name: string; region: string; size: string }) {
     }
     const hash = generateDirectoryHash(loc).slice(0, 5)
     return new local.Command(`${name}:copyFiles ${unroot(loc)}`, {
-      create: pulumi.interpolate`rsync -avP ${loc} ${connection.user}@${droplet.ipv4Address}:${remotePath}`,
+      create: pulumi.interpolate`rsync -avP -e "ssh -i ${process.env['PRIVATE_KEY_PATH']}" ${loc} ${connection.user}@${droplet.ipv4Address}:${remotePath}`,
       triggers: [hash, loc, remotePath],
     })
   }
