@@ -1,4 +1,4 @@
-# OPI Infrastructure
+# OPI.network / Bitcoin Oracle integration
 
 This project contains infrastructure code for deploying an [OPI](https://github.com/bestinslot-xyz/OPI) node on DigitalOcean using Pulumi. It will create a new DigitalOcean droplet, and mount a volume to it, install bitcoind, OPI softwares such as ord, postgres, and various indexers, and configure it to run. It will also run the restoration script to restore the latest snapshot of the postgres database and ord database. After the restore is complete, it will run all services required.
 
