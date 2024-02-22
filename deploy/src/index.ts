@@ -152,10 +152,6 @@ export function create(params: { name: string; region: string; size: string }) {
     privateKey,
     dialErrorLimit: 50,
   }
-  const privateKeyPassword = process.env['PRIVATE_KEY_PASSWORD']
-  if (privateKeyPassword != null && privateKeyPassword.length > 0) {
-    connection.privateKeyPassword = privateKeyPassword
-  }
 
   const provision = provisionInstance({ name, connection })
 
