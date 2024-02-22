@@ -47,6 +47,7 @@ Create `.envrc.override` file in the project directory and add the following:
 export DIGITAL_OCEAN_SSH_KEY_NAME=""
 export DIGITAL_OCEAN_SSH_KEY_ID=""
 # the path to the SSH private key that maps to the above SSH key name/ID, such as `~/.ssh/id_rsa`
+# For automated deployment, do not set password for the private key.
 export PRIVATE_KEY_PATH=""
 # visit `https://cloud.digitalocean.com/account/api/tokens` to get API key
 export DIGITAL_OCEAN_API_KEY=""
