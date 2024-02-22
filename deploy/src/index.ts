@@ -167,7 +167,7 @@ export function create(params: { name: string; region: string; size: string }) {
     const privateKeyPassword = process.env['PRIVATE_KEY_PASSWORD']
 
     // Use an expect script to interact with ssh-add securely, if privateKeyPassword is set.
-    let addKeyCommand = privateKeyPassword
+    let addKeyCommand = privateKeyPassword != null && privateKeyPassword?.length > 0
       ? `expect -c 'spawn ssh-add ${privateKey}; expect "Enter passphrase for"; send "${privateKeyPassword}\\r"; interact'`
       : `ssh-add ${privateKey}`
 
